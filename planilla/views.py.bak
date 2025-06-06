@@ -1,0 +1,6 @@
+from django.shortcuts import render
+from .models import Planilla  # asegúrate de que el modelo esté bien generado
+
+def lista_planilla(request):
+    datos = Planilla.objects.all()
+    return render(request, 'planilla/lista.html', {'datos': datos})

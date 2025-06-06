@@ -1,0 +1,13 @@
+from django.db import models
+
+class Planilla(models.Model):
+    class Meta:
+        managed = False  # Django no manejará esta tabla
+        db_table = 'planilla'
+
+    # Suponiendo que estos son campos reales de la tabla
+    id = models.AutoField(primary_key=True)
+    nombre = models.CharField(max_length=255)
+    puesto = models.CharField(max_length=255)
+    zona = models.CharField(max_length=100)
+    plantel = models.CharField(max_length=255)
