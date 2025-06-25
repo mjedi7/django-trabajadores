@@ -1,0 +1,133 @@
+import json
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse, HttpResponseNotAllowed
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib import messages
+from .models import Planilla, Adscripcion, Plazas
+from django.db.models import Count
+
+# Lista todos los registros
+def lista_planilla(request):
+    datos = Planilla.objects.all()
+    return render(request, 'planilla/lista.html', {'datos': datos})
+
+# Vistas simples que solo renderizan plantillas
+def altas_lista(request):
+    return render(request, 'planilla/altas_lista.html')
+
+def plazas(request):
+    return render(request, 'planilla/plazas.html')
+
+def anexo_ejecucion(request):
+    plazas = Plazas.objects.all()
+    return render(request, 'planilla/anexo_ejecucion.html', {'plazas': plazas})
+
+def historial(request):
+    return render(request, 'planilla/historial.html')
+
+def debug_planteles(request):
+    planteles = Adscripcion.objects.filter(activo="1").order_by('nombre')    
+    return render(request, 'planilla/debug_planteles.html', {'planteles': planteles})
+    
+# Crear nueva alta
+@csrf_exempt
+def altas_nueva(request):
+    if request.method == 'POST':
+        nombre = f"{request.POST.get('nombre', '').strip()} {request.POST.get('apellido_paterno', '').strip()} {request.POST.get('apellido_materno', '').strip()}"
+
+        plantel_id = request.POST.get('plantel', '')
+        adscripcion_obj = Adscripcion.objects.filter(id=plantel_id).first()
+
+        adscripcion_texto = adscripcion_obj.nombre if adscripcion_obj else ''
+        departamento = adscripcion_obj.municipio if adscripcion_obj else ''
+
+        clave = request.POST.get('no_personal', '').strip()
+
+        Planilla.objects.create(
+            nombre=nombre,
+            adscripcion=adscripcion_texto,
+            departamento=departamento,
+            clave=clave,
+            rfc=request.POST.get('rfc', '').strip(),
+            curp=request.POST.get('curp', '').strip(),
+            puesto=request.POST.get('categoria', '').strip(),
+            sindicato=request.POST.get('sindicalizado', '').strip(),
+            fecha_de_ingreso=request.POST.get('fecha_ingreso', None)
+        )
+
+        messages.success(request, '✅ Registro guardado correctamente.')
+        return redirect('planilla')  # o 'lista_planilla', según tu URL name
+
+    # GET
+    planteles = Adscripcion.objects.all().order_by('nombre')
+    return render(request, 'planilla/altas_nueva.html', {'planteles': planteles})
+
+@csrf_exempt  # Quita esto en producción y usa CSRF token
+def eliminar_registro(request, no):
+    if request.method == 'POST':
+        try:
+            registro = Planilla.objects.get(no=no)
+            registro.delete()
+            return JsonResponse({'mensaje': 'Registro eliminado'})
+        except Planilla.DoesNotExist:
+            return JsonResponse({'error': 'Registro no encontrado'}, status=404)
+    return HttpResponseNotAllowed(['POST'])
+    
+def consulta(request):
+    clave = request.GET.get('clave', '').strip()
+    empleado = None
+
+    if clave:
+        empleado = Planilla.objects.filter(clave=clave).first()
+
+    return render(request, 'planilla/consulta.html', {
+        'empleado': empleado,
+        'clave_busqueda': clave
+    })
+    
+
+
+def estadisticas(request):
+    trabajadores = Planilla.objects.all()
+    total_trabajadores = trabajadores.count()
+    puestos_unicos = trabajadores.values_list('puesto', flat=True).distinct().count()
+
+    # Lista de puestos a contar
+    lista_puestos = [
+    "COORDINADOR ACADEMICO", "DIRECTOR DE AREA", "DIRECTOR DE PLANTEL A", "DIRECTOR DE PLANTEL B",
+    "DIRECTOR GENERAL", "JEFE DE DEPARTAMENTO", "SUBDIRECTOR DE PLANTEL C", "ADMINISTRATIVO ESPECIALIZADO", "ALMACENISTA",
+    "ANALISTA ESPECIALIZADO", "AUXILIAR DE SERVICIOS Y MANTTO", "BIBLIOTECARIO", "CAPTURISTA", "COOR DE TECNICOS ESPECIALIZADOS",
+    "ENCARGADO DE ORDEN", "ENFERMERA", "INGENIERO EN SISTEMAS", "JEFE DE OFICINA", "LABORATORISTA", "OFICIAL DE MANTENIMIENTO",
+    "PROGRAMADOR", "SECRETARIA DE DIRECTOR DE AREA", "SECRETARIA DE DIRECTOR DE PLANTEL", "SECRETARIA DE DIRECTOR GENERAL",
+    "SUPERVISOR", "TAQUIMECANOGRAFA", "TECNICO ESPECIALIZADO", "TRABAJADORA SOCIAL", "VIGILANTE",
+    "OPERADOR DE EQUIPO TIP ESPECIAL", "CHOFER", "DIBUJANTE", "PROF CECYT I", "PROF CECYT I (APOYO DOCENCIA) ASOCIADO B MT",
+    "PROF CECYT I (APOYO DOCENCIA) ASOCIADO B TC", "PROF CECYT I (APOYO DOCENCIA) ASOCIADO B TT", "PROF CECYT II",
+    "PROF CECYT II (APOYO DOCENCIA) ASOCIADO C MT", "PROF CECYT II (APOYO DOCENCIA) ASOCIADO C TC",
+    "PROF CECYT II (APOYO DOCENCIA) ASOCIADO C TT", "PROF CECYT III", "PROF CECYT III (APOYO DOCENCIA) ASOCIADO A MT",
+    "PROF CECYT III (APOYO DOCENCIA) ASOCIADO A TC", "PROF CECYT III (APOYO DOCENCIA) ASOCIADO A TT", "PROF CECYT IV",
+    "PROF CECYT IV (APOYO DOCENCIA) ASOCIADO B MT", "PROF CECYT IV (APOYO DOCENCIA) ASOCIADO B TC",
+    "PROF CECYT IV (APOYO DOCENCIA) ASOCIADO B TT", "TEC DOC CECYT I", "TEC DOC CECYT II",
+    "PROF CECYT I ADICIONALES ASOCIADO B", "PROF CECYT II ADICIONALES ASOCIADO C", "PROF CECYT III ADICIONALES TITULAR A",
+    "PROF CECYT IV ADICIONALES TITULAR B", "TEC DOC CECYT I ADICIONALES TEC DOC ASOC A", "TEC DOC CECYT II ADICIONALES TEC DOC ASOC B",
+    "PROF ASOCIADO B MT", "PROF ASOCIADO B TC", "PROF ASOCIADO B TT", "PROF ASOCIADO C MT", "PROF ASOCIADO C TC",
+    "PROF ASOCIADO C TT", "PROF TITULAR A MT", "PROF TITULAR A TC", "PROF TITULAR A TT", "PROF TITULAR B MT",
+    "PROF TITULAR B TC", "PROF TITULAR B TT", "TEC DOC ASOC A MT", "TEC DOC ASOC A TT", "TEC DOC ASOC B TT","AUXILIAR DE SERVICIOS Y MANTENIMIENTO"
+    ]
+
+    conteo_puestos = {puesto: trabajadores.filter(puesto=puesto).count() for puesto in lista_puestos}
+
+    # Convertimos para pasarlo al JS
+    puestos_labels = list(conteo_puestos.keys())
+    puestos_data = list(conteo_puestos.values())
+
+    context = {
+        'total_trabajadores': total_trabajadores,
+        'puestos_unicos': puestos_unicos,
+        'conteo_puestos': conteo_puestos,
+        'puestos_labels': json.dumps(puestos_labels),
+        'puestos_data': json.dumps(puestos_data)
+    }
+
+    #print("Planteles activos:", Adscripcion.objects.values_list('activo', flat=True).distinct())
+
+    return render(request, 'planilla/estadisticas.html', context)
