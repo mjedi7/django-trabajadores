@@ -25,6 +25,11 @@ def lista(request):
 def plazas(request):
     return render(request, 'planilla/plazas.html')
 
+def files(request):
+    return render(request, 'planilla/files.html')
+    
+def test(request):
+    return render(request, 'planilla/prueba.html')
 
 def dplanteles(request):
     return render(request, 'planilla/debug_planteles.html')
