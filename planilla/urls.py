@@ -13,6 +13,5 @@ urlpatterns = [
     path('consulta/', views.consulta, name='consulta'),
     path('estadisticas/', views.estadisticas, name='estadisticas'),
     path('debug-planteles/', views.dplanteles, name='dplanteles'),
-    path('archvivos/', views.files, name='files'),    
-    path('test/', views.test, name='test'),    
+    path('directorio/', views.directorio, name='directorio'),
 ]

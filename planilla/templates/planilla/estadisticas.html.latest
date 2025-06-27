@@ -3,7 +3,7 @@
 {% block title %}Estadísticas - Planilla{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-4" id="tablaComparaPlazas">
   <h2>Estadísticas de la Planilla</h2>
   <hr>
   <div class="row">
@@ -79,6 +79,9 @@
     data: data,
     options: {
       responsive: true,
+      searching: true,
+      dom: 'Bfrtip',  // Importante para que aparezcan los botones
+      buttons: ['copy', 'csv', 'excel', 'pdf', 'print', 'colvis'],      
       plugins: {
         legend: {
           position: 'right',
@@ -96,7 +99,4 @@
   
 </div>
 
-
-
 {% endblock %}
-

@@ -27,14 +27,37 @@
   </div>
 
   <h4 class="mt-5">Conteo por Puesto</h4>
+  <table class="table table-bordered table-striped mt-3">
+    <thead class="table-dark">
+      <tr>
+        <th>Puesto</th>
+        <th>Cantidad</th>
+        <th>Coincide en Plazas</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in conteo_y_coincidencia %}
+      <tr>
+        <td>{{ item.puesto }}</td>
+        <td>{{ item.cantidad }}</td>
+        <td>
+          {% if item.coincide %}
+            ✅
+          {% else %}
+            ❌
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
     
 <table class="table table-bordered table-striped mt-3">
   <thead class="table-dark">
     <tr>
       <th>Puesto</th>
       <th>Cantidad Planilla</th>
-      <th>Diferencia</th>
       <th>Cantidad Plazas</th>
+      <th>Diferencia</th>
       <th>Coincide en Plazas</th>
     </tr>
   </thead>
@@ -57,6 +80,8 @@
   </tbody>
 </table>
     
+  </table>
+  
   <h4 class="mt-5">Gráfica de Puestos</h4>
   <div style="height: 800px;">
     <canvas id="graficaPuestos"></canvas>

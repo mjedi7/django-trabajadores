@@ -3,39 +3,74 @@
 {% block content %}
 
 <div class="container mt-4">
-  <h3>Consulta por Clave de Empleado</h3>
+  <h3 class="text-center mb-4">Consulta por Clave de Empleado</h3>
 
-  <form method="GET" action="{% url 'consulta' %}" class="row g-3 mb-4">
+  <!-- Formulario de búsqueda -->
+  <form method="GET" action="{% url 'consulta' %}" class="row g-3 mb-4 justify-content-center">
     <div class="col-md-4">
       <label for="clave" class="form-label">Clave de Empleado</label>
       <input type="text" class="form-control" id="clave" name="clave" placeholder="Ej. 2726" required>
     </div>
     <div class="col-md-2 d-flex align-items-end">
-      <button type="submit" class="btn btn-primary">Buscar</button>
+      <button type="submit" class="btn btn-primary w-100">Buscar</button>
     </div>
   </form>
 
+  <!-- Resultados de búsqueda -->
   {% if empleado %}
     <div class="card">
       <div class="card-header bg-success text-white">
         Datos del Empleado
       </div>
       <div class="card-body">
-        <p><strong>No:</strong> {{ empleado.no }}</p>
-        <p><strong>Nombre:</strong> {{ empleado.nombre }}</p>
-        <p><strong>Adscripcion:</strong> {{ empleado.adscripcion }}</p>
-        <p><strong>Departamento:</strong> {{ empleado.departamento }}</p>
-        <p><strong>Clave:</strong> {{ empleado.clave }}</p>
-        <p><strong>RFC:</strong> {{ empleado.rfc }}</p>
-        <p><strong>CURP:</strong> {{ empleado.curp }}</p>
-        <p><strong>Puesto:</strong> {{ empleado.puesto }}</p>
-        <p><strong>Sindicato:</strong> {{ empleado.sindicato }}</p>
-        <p><strong>Fecha de Ingreso:</strong> {{ empleado.fecha_de_ingreso|date:"Y-m-d" }}</p>
+        <div class="row g-2">
+          <div class="col-md-3">
+            <label class="form-label fw-bold">No:</label>
+            <div class="form-control">{{ empleado.no }}</div>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label fw-bold">Nombre:</label>
+            <div class="form-control">{{ empleado.nombre }}</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">Adscripción:</label>
+            <div class="form-control">{{ empleado.adscripcion }}</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">Departamento:</label>
+            <div class="form-control">{{ empleado.departamento }}</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">Clave:</label>
+            <div class="form-control">{{ empleado.clave }}</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">RFC:</label>
+            <div class="form-control">{{ empleado.rfc }}</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">CURP:</label>
+            <div class="form-control">{{ empleado.curp }}</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">Puesto:</label>
+            <div class="form-control">{{ empleado.puesto }}</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">Sindicato:</label>
+            <div class="form-control">{{ empleado.sindicato }}</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">Fecha de Ingreso:</label>
+            <div class="form-control">{{ empleado.fecha_de_ingreso|date:"Y-m-d" }}</div>
+          </div>
+        </div>
       </div>
     </div>
+
   {% elif clave_busqueda %}
     <div class="alert alert-danger mt-4">
-      No se encontro ningun empleado con la clave <strong>{{ clave_busqueda }}</strong>.
+      No se encontró ningún empleado con la clave <strong>{{ clave_busqueda }}</strong>.
     </div>
   {% endif %}
 </div>

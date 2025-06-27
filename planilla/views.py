@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from .models import Planilla, Adscripcion, Plazas
+from .models import Planilla, Adscripcion, Plazas, Directorio
 from django.db.models import Count
 
 
@@ -131,9 +131,9 @@ def estadisticas(request):
 
     lista_puestos = [
         "COORDINADOR ACADEMICO", "DIRECTOR DE AREA", "DIRECTOR DE PLANTEL A", "DIRECTOR DE PLANTEL B",
-        "DIRECTOR GENERAL", "JEFE DE DEPARTAMENTO", "SUBDIRECTOR DE PLANTEL C", "AUXILIAR DE SERVICIOS Y MANTENIMIENTO",
+        "DIRECTOR GENERAL", "JEFE DE DEPARTAMENTO", "SUBDIRECTOR DE PLANTEL C", "AUXILIAR DE SERVICIOS Y MANTTO",
         "ADMINISTRATIVO ESPECIALIZADO", "ALMACENISTA", "ANALISTA ESPECIALIZADO", "BIBLIOTECARIO", "CAPTURISTA",
-        "COORDINADOR DE TECNICOS ESPECIALIZADOS", "ENCARGADO DE ORDEN", "ENFERMERA", "INGENIERO EN SISTEMAS",
+        "COOR DE TECNICOS ESPECIALIZADOS", "ENCARGADO DE ORDEN", "ENFERMERA", "INGENIERO EN SISTEMAS",
         "JEFE DE OFICINA", "LABORATORISTA", "OFICIAL DE MANTENIMIENTO", "PROGRAMADOR",
         "SECRETARIA DE DIRECTOR DE AREA", "SECRETARIA DE DIRECTOR DE PLANTEL", "SECRETARIA DE DIRECTOR GENERAL",
         "SUPERVISOR", "TAQUIMECANOGRAFA", "TECNICO ESPECIALIZADO", "TRABAJADORA SOCIAL", "VIGILANTE",
@@ -153,14 +153,38 @@ def estadisticas(request):
         "TEC DOC ASOC A MT", "TEC DOC ASOC A TT", "TEC DOC ASOC B TT"
     ]
 
-    conteo_puestos = {puesto: trabajadores.filter(puesto=puesto).count() for puesto in lista_puestos}
+    puestos_labels = []
+    puestos_data = []
+    conteo_y_coincidencia = []
+
+    for puesto in lista_puestos:
+        cantidad_planilla = trabajadores.filter(puesto=puesto).count()
+        cantidad_plazas = Plazas.objects.filter(denominacion=puesto).count()
+        existe_en_plazas = cantidad_plazas > 0
+
+        if cantidad_planilla > 0:
+            puestos_labels.append(puesto)
+            puestos_data.append(cantidad_planilla)
+
+        conteo_y_coincidencia.append({
+            'puesto': puesto,
+            'cantidad_planilla': cantidad_planilla,
+            'cantidad_plazas': cantidad_plazas,
+            'coincide': existe_en_plazas,
+            'diferencia': cantidad_planilla - cantidad_plazas,
+        })
 
     context = {
         'total_trabajadores': total_trabajadores,
         'puestos_unicos': puestos_unicos,
-        'conteo_puestos': conteo_puestos,
-        'puestos_labels': json.dumps(list(conteo_puestos.keys())),
-        'puestos_data': json.dumps(list(conteo_puestos.values()))
+        'conteo_y_coincidencia': conteo_y_coincidencia,
+        'puestos_labels': puestos_labels,
+        'puestos_data': puestos_data,
     }
 
     return render(request, 'planilla/estadisticas.html', context)
+
+
+def directorio(request):
+    directorio = Directorio.objects.all()
+    return render(request, 'planilla/directorio.html', {'directorio': directorio})

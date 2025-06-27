@@ -45,3 +45,33 @@ class Plazas(models.Model):
     
     class Meta:
         db_table = 'plazas'  # Esta apunta a tabla 'plazas'
+
+class Directorio(models.Model):
+    cct = models.TextField(blank=True, null=True)
+    clave_adscripcion = models.TextField(blank=True, null=True)
+    nombre = models.TextField(blank=True, null=True)
+    nombre_departamento_corto = models.TextField(blank=True, null=True)
+    area = models.TextField(blank=True, null=True)
+    calle_numero = models.TextField(blank=True, null=True)
+    colonia_zona = models.TextField(blank=True, null=True)
+    codigo_postal = models.TextField(blank=True, null=True)
+    ciudad_estado = models.TextField(blank=True, null=True)
+    telefono_plantel = models.TextField(blank=True, null=True)
+    telefono_plantel2 = models.TextField(blank=True, null=True)
+    extension_depto = models.TextField(blank=True, null=True)
+    extensiones_aux = models.TextField(blank=True, null=True)
+    director = models.TextField(blank=True, null=True)
+    coordinador_administrativo = models.TextField(blank=True, null=True)
+    coordinador_academico = models.TextField(blank=True, null=True)
+    municipio = models.CharField(max_length=255, blank=True, null=True)
+    zona = models.CharField(max_length=255, blank=True, null=True)
+    direccion = models.CharField(max_length=255, blank=True, null=True)
+    activo = models.CharField(max_length=255, blank=True, null=True)
+    fecha_creacion = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'adscripcion'
+
+    def __str__(self):
+        return self.nombre

@@ -3,32 +3,52 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from .models import Planilla, Adscripcion, Plazas
+from .models import Planilla, Adscripcion, Plazas, Directorio
 from django.db.models import Count
 
-# Lista todos los registros
+
 def lista_planilla(request):
     datos = Planilla.objects.all()
     return render(request, 'planilla/lista.html', {'datos': datos})
 
-# Vistas simples que solo renderizan plantillas
+
 def altas_lista(request):
-    return render(request, 'planilla/altas_lista.html')
+    datos = Planilla.objects.all().order_by('nombre')
+    return render(request, 'planilla/altas_lista.html', {'datos': datos})
+
+
+def lista(request):
+    datos = Planilla.objects.all()
+    return render(request, 'planilla/lista.html', {'datos': datos})
+
 
 def plazas(request):
     return render(request, 'planilla/plazas.html')
+
+def files(request):
+    return render(request, 'planilla/files.html')
+    
+def test(request):
+    return render(request, 'planilla/prueba.html')
+
+def dplanteles(request):
+    return render(request, 'planilla/debug_planteles.html')
+
 
 def anexo_ejecucion(request):
     plazas = Plazas.objects.all()
     return render(request, 'planilla/anexo_ejecucion.html', {'plazas': plazas})
 
+
 def historial(request):
     return render(request, 'planilla/historial.html')
 
+
 def debug_planteles(request):
-    planteles = Adscripcion.objects.filter(activo="1").order_by('nombre')    
+    planteles = Adscripcion.objects.filter(activo="1").order_by('nombre')
     return render(request, 'planilla/debug_planteles.html', {'planteles': planteles})
-    
+
+
 # Crear nueva alta
 @csrf_exempt
 def altas_nueva(request):
@@ -43,6 +63,11 @@ def altas_nueva(request):
 
         clave = request.POST.get('no_personal', '').strip()
 
+        # Validar que no exista la clave
+        if Planilla.objects.filter(clave=clave).exists():
+            messages.error(request, '❌ Ya existe un registro con ese número de personal.')
+            return redirect('altas_nueva')
+
         Planilla.objects.create(
             nombre=nombre,
             adscripcion=adscripcion_texto,
@@ -56,13 +81,25 @@ def altas_nueva(request):
         )
 
         messages.success(request, '✅ Registro guardado correctamente.')
-        return redirect('planilla')  # o 'lista_planilla', según tu URL name
+        return redirect('planilla')
 
-    # GET
+    # GET: calcular la siguiente clave disponible (solo claves numéricas válidas)
+    claves_numericas = Planilla.objects.filter(clave__regex=r'^\d+$').values_list('clave', flat=True)
+
+    if claves_numericas:
+        claves_enteras = [int(k) for k in claves_numericas]
+        siguiente_clave = str(max(claves_enteras) + 1)
+    else:
+        siguiente_clave = '1'
+
     planteles = Adscripcion.objects.all().order_by('nombre')
-    return render(request, 'planilla/altas_nueva.html', {'planteles': planteles})
+    return render(request, 'planilla/altas_nueva.html', {
+        'planteles': planteles,
+        'siguiente_clave': siguiente_clave
+    })
 
-@csrf_exempt  # Quita esto en producción y usa CSRF token
+
+@csrf_exempt
 def eliminar_registro(request, no):
     if request.method == 'POST':
         try:
@@ -72,7 +109,8 @@ def eliminar_registro(request, no):
         except Planilla.DoesNotExist:
             return JsonResponse({'error': 'Registro no encontrado'}, status=404)
     return HttpResponseNotAllowed(['POST'])
-    
+
+
 def consulta(request):
     clave = request.GET.get('clave', '').strip()
     empleado = None
@@ -84,7 +122,6 @@ def consulta(request):
         'empleado': empleado,
         'clave_busqueda': clave
     })
-    
 
 
 def estadisticas(request):
@@ -92,44 +129,42 @@ def estadisticas(request):
     total_trabajadores = trabajadores.count()
     puestos_unicos = trabajadores.values_list('puesto', flat=True).distinct().count()
 
-    # Lista de puestos a contar
     lista_puestos = [
-        "JEFE DE OFICINA", "ADMINISTRATIVO ESPECIALIZADO", "ALMACENISTA", "TAQUIMECANOGRAFA", "SUPERVISOR",
-        "INGENIERO EN SISTEMAS", "ENCARGADO DE ORDEN", "TECNICO ESPECIALIZADO", "COOR. DE TECNICOS ESPECIALIZADOS",
+        "COORDINADOR ACADEMICO", "DIRECTOR DE AREA", "DIRECTOR DE PLANTEL A", "DIRECTOR DE PLANTEL B",
+        "DIRECTOR GENERAL", "JEFE DE DEPARTAMENTO", "SUBDIRECTOR DE PLANTEL C", "AUXILIAR DE SERVICIOS Y MANTENIMIENTO",
+        "ADMINISTRATIVO ESPECIALIZADO", "ALMACENISTA", "ANALISTA ESPECIALIZADO", "BIBLIOTECARIO", "CAPTURISTA",
+        "COORDINADOR DE TECNICOS ESPECIALIZADOS", "ENCARGADO DE ORDEN", "ENFERMERA", "INGENIERO EN SISTEMAS",
+        "JEFE DE OFICINA", "LABORATORISTA", "OFICIAL DE MANTENIMIENTO", "PROGRAMADOR",
         "SECRETARIA DE DIRECTOR DE AREA", "SECRETARIA DE DIRECTOR DE PLANTEL", "SECRETARIA DE DIRECTOR GENERAL",
-        "PROF. CECYT I", "PROF. CECYT I (APOYO DOCENCIA) ASOCIADO B MT", "PROF. CECYT I (APOYO DOCENCIA) ASOCIADO B TC",
-        "PROF. CECYT I (APOYO DOCENCIA) ASOCIADO B TT", "PROF. CECYT I ADICIONALES ASOCIADO B",
-        "PROF. CECYT II", "PROF. CECYT II (APOYO DOCENCIA) ASOCIADO C MT", "PROF. CECYT II (APOYO DOCENCIA) ASOCIADO C TC",
-        "PROF. CECYT II (APOYO DOCENCIA) ASOCIADO C TT", "PROF. CECYT II ADICIONALES ASOCIADO C",
-        "PROF. CECYT III", "PROF. CECYT III (APOYO DOCENCIA) TITULAR A MT", "PROF. CECYT III (APOYO DOCENCIA) TITULAR A TC",
-        "PROF. CECYT III (APOYO DOCENCIA) TITULAR A TT", "PROF. CECYT III ADICIONALES TITULAR A",
-        "PROF. CECYT IV", "PROF. CECYT IV (APOYO DOCENCIA) TITULAR B MT", "PROF. CECYT IV (APOYO DOCENCIA) TITULAR B TC",
-        "PROF. CECYT IV (APOYO DOCENCIA) TITULAR B TT", "PROF. CECYT IV ADICIONALES TITULAR B",
-        "TEC DOC CECYT I", "TEC DOC CECYT I ADICIONALES TEC DOC ASOC A", "TEC DOC CECYT II",
-        "TEC DOC CECYT II ADICIONALES TEC DOC ASOC B", "PROF. ASOCIADO B MT", "PROF. TITULAR A MT",
-        "PROF. TITULAR B MT", "TEC DOC ASOC A MT", "PROF. ASOCIADO C MT", "PROF. ASOCIADO B TT",
-        "PROF. TITULAR A TT", "PROF. TITULAR B TT", "TEC DOC ASOC A TT", "TEC DOC ASOC B TT",
-        "PROF. ASOCIADO C TT", "PROF. ASOCIADO B TC", "PROF. TITULAR A TC", "PROF. TITULAR B TC",
-        "PROF. ASOCIADO C TC", "COORDINADOR ACADEMICO", "DIRECTOR DE AREA", "DIRECTOR DE PLANTEL A",
-        "DIRECTOR DE PLANTEL B", "DIRECTOR GENERAL", "JEFE DE DEPARTAMENTO", "SUBDIRECTOR DE PLANTEL C",
-        "ANALISTA ESPECIALIZADO", "AUXILIAR DE SERVICIOS Y MANTTO.", "OFICIAL DE MANTENIMIENTO", "VIGILANTE",
-        "BIBLIOTECARIO", "PROGRAMADOR", "CAPTURISTA", "ENFERMERA", "LABORATORISTA", "TRABAJADORA SOCIAL"
+        "SUPERVISOR", "TAQUIMECANOGRAFA", "TECNICO ESPECIALIZADO", "TRABAJADORA SOCIAL", "VIGILANTE",
+        "OPERADOR DE EQUIPO TIP ESPECIAL", "CHOFER", "DIBUJANTE", "PROF CECYT I",
+        "PROF CECYT I (APOYO DOCENCIA) ASOCIADO B MT", "PROF CECYT I (APOYO DOCENCIA) ASOCIADO B TC",
+        "PROF CECYT I (APOYO DOCENCIA) ASOCIADO B TT", "PROF CECYT II", "PROF CECYT II (APOYO DOCENCIA) ASOCIADO C MT",
+        "PROF CECYT II (APOYO DOCENCIA) ASOCIADO C TC", "PROF CECYT II (APOYO DOCENCIA) ASOCIADO C TT",
+        "PROF CECYT III", "PROF CECYT III (APOYO DOCENCIA) ASOCIADO A MT", "PROF CECYT III (APOYO DOCENCIA) ASOCIADO A TC",
+        "PROF CECYT III (APOYO DOCENCIA) ASOCIADO A TT", "PROF CECYT IV", "PROF CECYT IV (APOYO DOCENCIA) ASOCIADO B MT",
+        "PROF CECYT IV (APOYO DOCENCIA) ASOCIADO B TC", "PROF CECYT IV (APOYO DOCENCIA) ASOCIADO B TT", "TEC DOC CECYT I",
+        "TEC DOC CECYT II", "PROF CECYT I ADICIONALES ASOCIADO B", "PROF CECYT II ADICIONALES ASOCIADO C",
+        "PROF CECYT III ADICIONALES TITULAR A", "PROF CECYT IV ADICIONALES TITULAR B",
+        "TEC DOC CECYT I ADICIONALES TEC DOC ASOC A", "TEC DOC CECYT II ADICIONALES TEC DOC ASOC B",
+        "PROF ASOCIADO B MT", "PROF ASOCIADO B TC", "PROF ASOCIADO B TT", "PROF ASOCIADO C MT",
+        "PROF ASOCIADO C TC", "PROF ASOCIADO C TT", "PROF TITULAR A MT", "PROF TITULAR A TC",
+        "PROF TITULAR A TT", "PROF TITULAR B MT", "PROF TITULAR B TC", "PROF TITULAR B TT",
+        "TEC DOC ASOC A MT", "TEC DOC ASOC A TT", "TEC DOC ASOC B TT"
     ]
 
     conteo_puestos = {puesto: trabajadores.filter(puesto=puesto).count() for puesto in lista_puestos}
-
-    # Convertimos para pasarlo al JS
-    puestos_labels = list(conteo_puestos.keys())
-    puestos_data = list(conteo_puestos.values())
 
     context = {
         'total_trabajadores': total_trabajadores,
         'puestos_unicos': puestos_unicos,
         'conteo_puestos': conteo_puestos,
-        'puestos_labels': json.dumps(puestos_labels),
-        'puestos_data': json.dumps(puestos_data)
+        'puestos_labels': json.dumps(list(conteo_puestos.keys())),
+        'puestos_data': json.dumps(list(conteo_puestos.values()))
     }
-
-    #print("Planteles activos:", Adscripcion.objects.values_list('activo', flat=True).distinct())
-
+    
     return render(request, 'planilla/estadisticas.html', context)
+
+def directorio(request):
+    directorio = Directorio.objects.all()
+    return render(request, 'planilla/directorio.html', {'directorio': directorio})

@@ -1,0 +1,43 @@
+{% extends 'planilla/menu.html' %}
+{% block title %}Consulta de Empleado{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+  <h3>Consulta por Clave de Empleado</h3>
+
+  <form method="GET" action="{% url 'consulta' %}" class="row g-3 mb-4">
+    <div class="col-md-4">
+      <label for="clave" class="form-label">Clave de Empleado</label>
+      <input type="text" class="form-control" id="clave" name="clave" placeholder="Ej. 2726" required>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      <button type="submit" class="btn btn-primary">Buscar</button>
+    </div>
+  </form>
+
+  {% if empleado %}
+    <div class="card">
+      <div class="card-header bg-success text-white">
+        Datos del Empleado
+      </div>
+      <div class="card-body">
+        <p><strong>No:</strong> {{ empleado.no }}</p>
+        <p><strong>Nombre:</strong> {{ empleado.nombre }}</p>
+        <p><strong>Adscripcion:</strong> {{ empleado.adscripcion }}</p>
+        <p><strong>Departamento:</strong> {{ empleado.departamento }}</p>
+        <p><strong>Clave:</strong> {{ empleado.clave }}</p>
+        <p><strong>RFC:</strong> {{ empleado.rfc }}</p>
+        <p><strong>CURP:</strong> {{ empleado.curp }}</p>
+        <p><strong>Puesto:</strong> {{ empleado.puesto }}</p>
+        <p><strong>Sindicato:</strong> {{ empleado.sindicato }}</p>
+        <p><strong>Fecha de Ingreso:</strong> {{ empleado.fecha_de_ingreso|date:"Y-m-d" }}</p>
+      </div>
+    </div>
+  {% elif clave_busqueda %}
+    <div class="alert alert-danger mt-4">
+      No se encontro ningun empleado con la clave <strong>{{ clave_busqueda }}</strong>.
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}
