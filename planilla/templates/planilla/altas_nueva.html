@@ -207,22 +207,25 @@
                 <div class="invalid-feedback">Ingrese un teléfono válido de 10 dígitos.</div>
             </div>
 
-            <!-- Banco, Cuenta, CLABE -->
-            <div class="col-md-4">
-                <label class="form-label">Datos Bancarios</label>
-                <div class="input-group mb-2">
-                    <span class="input-group-text">Banco</span>
-                    <input type="text" class="form-control" id="banco" name="banco" maxlength="50">
-                </div>
-                <div class="input-group mb-2">
-                    <span class="input-group-text">Cuenta</span>
-                    <input type="text" class="form-control" id="cuenta" name="cuenta" maxlength="20">
-                </div>
-                <div class="input-group">
-                    <span class="input-group-text">CLABE</span>
-                    <input type="text" class="form-control" id="clabe" name="clabe" maxlength="18">
-                </div>
-            </div>
+<!-- Banco, Cuenta, CLABE en una sola línea -->
+<div class="col-12">
+    <label class="form-label">Datos Bancarios</label>
+    <div class="input-group mb-2">
+        <!-- Banco -->
+        <span class="input-group-text">Banco</span>
+        <input type="text" class="form-control" id="banco" name="banco" maxlength="50">
+
+        <!-- Cuenta -->
+        <span class="input-group-text">Cuenta</span>
+        <input type="text" class="form-control" id="cuenta" name="cuenta" maxlength="20">
+
+        <!-- CLABE -->
+        <span class="input-group-text">CLABE</span>
+        <input type="text" class="form-control" id="clabe" name="clabe" maxlength="18">
+    </div>
+</div>
+
+
 
         </div>
 

@@ -1,11 +1,20 @@
+{% if not request.COOKIES.usuario %}
+    <script>window.location.href = "{% url 'login_usuario' %}";</script>
+{% endif %}
+
 <!DOCTYPE html>
 <html lang="es" class="dark" data-bs-theme="dark">
+
+	<!--
+	<html lang="es" class="dark" data-bs-theme="dark">
+	-->
+
 <head>
 
 {% load static %}
 
   <meta charset="UTF-8">
-  <title>{% block title %}Sistema de Plazas{% endblock %}</title>
+  <title>{% block title %}SELENE{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Bootstrap y Estilos globales -->
@@ -24,7 +33,7 @@
   <!-- Navbar superior -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="{% url 'planilla' %}" style="color: orange;">Sistema de Plazas</a>
+      <a class="navbar-brand" href="{% url 'planilla' %}" style="color: orange;">SELENE</a>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContenido" aria-controls="navbarContenido" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -48,12 +57,12 @@
 
           <li class="nav-item">
             <a class="nav-link" href="{% url 'control_plazas' %}">
-            <i class="bi bi-person-workspace"></i>Control de Plazas</a>
+            <i class="bi bi-person-workspace"></i>Plazas</a>
           </li>
 
           <li class="nav-item">
             <a class="nav-link" href="{% url 'anexo_ejecucion' %}">
-            <i class="bi bi-columns"></i>Anexo de Ejecución</a>
+            <i class="bi bi-columns"></i>Anexo</a>
           </li>
           
 		<li class="nav-item">
@@ -79,6 +88,18 @@
 		</li>
 
 		<img src="{% static 'planilla/imgs/cecytev-logos.png' %}" alt="Logo CECyTEV" width=25% />
+		
+  <div class="d-flex align-items-center gap-2 ms-auto">
+<button type="button" class="btn btn-secondary btn-sm disabled">
+    <i class="bi bi-person-circle"></i>
+    {{ request.COOKIES.usuario }} ({{ request.COOKIES.autorizacion }})
+</button>
+
+        <button id="toggleThemeBtn" class="btn btn-orange btn-sm">claro/oscuro</button>
+        <a href="{% url 'logout_usuario' %}" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-box-arrow-right"></i> Salir
+        </a>
+    </div>
 
         </ul>
       </div>
@@ -101,6 +122,22 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
   <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.colVis.min.js"></script>
+  
+  <!-- Cambiar tema claro/oscuro -->
+<script>
+  const htmlElem = document.documentElement; 
+  const btn = document.getElementById('toggleThemeBtn');
+
+  btn.addEventListener('click', () => {
+    if (htmlElem.classList.contains('dark')) {
+      htmlElem.classList.remove('dark');
+      htmlElem.removeAttribute('data-bs-theme');
+    } else {
+      htmlElem.classList.add('dark');
+      htmlElem.setAttribute('data-bs-theme', 'dark');
+    }
+  });
+</script>
 
   {% block extra_js %}{% endblock %}
 </body>

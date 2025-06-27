@@ -28,7 +28,7 @@
 
   <h4 class="mt-5">Conteo por Puesto</h4>
     
-<table class="table table-bordered table-striped mt-3">
+<table id="tablaEstadisticas" class="table table-bordered table-striped mt-3">
   <thead class="table-dark">
     <tr>
       <th>Puesto</th>
@@ -108,4 +108,20 @@
   </script>
   
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#tablaEstadisticas').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-MX.json"
+        },
+        "pageLength": 25,
+        "lengthMenu": [ [10, 25, 50, -1], [10, 25, 50, "Todos"] ],
+        "ordering": true,
+        "responsive": true
+    });
+});
+</script>
 {% endblock %}

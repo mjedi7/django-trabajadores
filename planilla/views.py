@@ -6,6 +6,41 @@ from django.contrib import messages
 from .models import Planilla, Adscripcion, Plazas, Directorio
 from django.db.models import Count
 
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from django.utils import timezone
+from .models import Usuario
+
+def login_usuario(request):
+    mensaje = ''
+    if request.method == 'POST':
+        usuario = request.POST.get('usuario')
+        contrasena = request.POST.get('contrasena')
+        recordar = request.POST.get('recordar')
+
+        try:
+            user = Usuario.objects.get(nombre_usuario=usuario, contrasena=contrasena, estatus=True)
+            user.ultimo_ingreso = timezone.now()
+            user.save()
+
+            response = redirect('planilla')  # o redirecciona a donde desees
+
+            # Cookies de sesión
+            max_age = 60*60*24*30 if recordar else None  # 30 días si se marca recordar
+            response.set_cookie('usuario', usuario, max_age=max_age)
+            response.set_cookie('autorizacion', user.autorizacion, max_age=max_age)
+            return response
+
+        except Usuario.DoesNotExist:
+            mensaje = 'Usuario o contraseña incorrectos, intenta nuevamente.'
+
+    return render(request, 'planilla/login.html', {'mensaje': mensaje})
+
+def logout_usuario(request):
+    response = redirect('login_usuario')
+    response.delete_cookie('usuario')
+    response.delete_cookie('autorizacion')
+    return response
 
 def lista_planilla(request):
     datos = Planilla.objects.all()
