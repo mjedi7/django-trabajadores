@@ -1,18 +1,62 @@
 import json
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponseNotAllowed
+from django.http import HttpResponse, JsonResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from .models import Planilla, Adscripcion, Plazas
-from django.db.models import Max
+from .models import Usuario, Planilla, Adscripcion, Plazas, Directorio
+from django.db.models import Count
+from django.utils import timezone
+
+def login_usuario(request):
+    mensaje = ''
+    if request.method == 'POST':
+        usuario = request.POST.get('usuario')
+        contrasena = request.POST.get('contrasena')
+        recordar = request.POST.get('recordar')
+
+        try:
+            user = Usuario.objects.get(nombre_usuario=usuario, contrasena=contrasena, estatus=True)
+            user.ultimo_ingreso = timezone.now()
+            user.save()
+
+            response = redirect('planilla')  # o redirecciona a donde desees
+
+            # Cookies de sesión
+            max_age = 60*60*24*30 if recordar else None  # 30 días si se marca recordar
+            response.set_cookie('usuario', usuario, max_age=max_age)
+            response.set_cookie('autorizacion', user.autorizacion, max_age=max_age)
+            return response
+
+        except Usuario.DoesNotExist:
+            mensaje = 'Usuario o contraseña incorrectos, intenta nuevamente.'
+
+    return render(request, 'planilla/login.html', {'mensaje': mensaje})
+
+def logout_usuario(request):
+    response = redirect('login_usuario')
+    response.delete_cookie('usuario')
+    response.delete_cookie('autorizacion')
+    return response
 
 def lista_planilla(request):
     datos = Planilla.objects.all()
-    return render(request, 'planilla/lista.html', {'datos': datos})
+
+    usuario_cookie = request.COOKIES.get('usuario', '')
+    autorizacion = ''
+    if usuario_cookie:
+        usuario_obj = Usuario.objects.filter(nombre_usuario=usuario_cookie).first()
+        if usuario_obj:
+            autorizacion = usuario_obj.autorizacion
+
+    return render(request, 'planilla/lista.html', {
+        'datos': datos,
+        'autorizacion_usuario': autorizacion,
+    })
 
 def altas_lista(request):
     datos = Planilla.objects.all().order_by('nombre')
     return render(request, 'planilla/altas_lista.html', {'datos': datos})
+
 
 def lista(request):
     datos = Planilla.objects.all()
@@ -21,19 +65,29 @@ def lista(request):
 def plazas(request):
     return render(request, 'planilla/plazas.html')
 
+def files(request):
+    return render(request, 'planilla/files.html')
+    
+def test(request):
+    return render(request, 'planilla/prueba.html')
+
 def dplanteles(request):
     return render(request, 'planilla/debug_planteles.html')
+
 
 def anexo_ejecucion(request):
     plazas = Plazas.objects.all()
     return render(request, 'planilla/anexo_ejecucion.html', {'plazas': plazas})
 
+
 def historial(request):
     return render(request, 'planilla/historial.html')
+
 
 def debug_planteles(request):
     planteles = Adscripcion.objects.filter(activo="1").order_by('nombre')
     return render(request, 'planilla/debug_planteles.html', {'planteles': planteles})
+
 
 # Crear nueva alta
 @csrf_exempt
@@ -48,6 +102,11 @@ def altas_nueva(request):
         departamento = adscripcion_obj.municipio if adscripcion_obj else ''
 
         clave = request.POST.get('no_personal', '').strip()
+
+        # Validar que no exista la clave
+        if Planilla.objects.filter(clave=clave).exists():
+            messages.error(request, '❌ Ya existe un registro con ese número de personal.')
+            return redirect('altas_nueva')
 
         Planilla.objects.create(
             nombre=nombre,
@@ -64,19 +123,21 @@ def altas_nueva(request):
         messages.success(request, '✅ Registro guardado correctamente.')
         return redirect('planilla')
 
-    # Si es GET: calcular la siguiente clave disponible
-    planteles = Adscripcion.objects.all().order_by('nombre')
+    # GET: calcular la siguiente clave disponible (solo claves numéricas válidas)
+    claves_numericas = Planilla.objects.filter(clave__regex=r'^\d+$').values_list('clave', flat=True)
 
-    max_clave = Planilla.objects.aggregate(max_clave=Max('clave'))['max_clave']
-    try:
-        siguiente_clave = str(int(max_clave) + 1) if max_clave and max_clave.isdigit() else '1'
-    except Exception:
+    if claves_numericas:
+        claves_enteras = [int(k) for k in claves_numericas]
+        siguiente_clave = str(max(claves_enteras) + 1)
+    else:
         siguiente_clave = '1'
 
+    planteles = Adscripcion.objects.all().order_by('nombre')
     return render(request, 'planilla/altas_nueva.html', {
         'planteles': planteles,
         'siguiente_clave': siguiente_clave
     })
+
 
 @csrf_exempt
 def eliminar_registro(request, no):
@@ -88,6 +149,7 @@ def eliminar_registro(request, no):
         except Planilla.DoesNotExist:
             return JsonResponse({'error': 'Registro no encontrado'}, status=404)
     return HttpResponseNotAllowed(['POST'])
+
 
 def consulta(request):
     clave = request.GET.get('clave', '').strip()
@@ -101,6 +163,7 @@ def consulta(request):
         'clave_busqueda': clave
     })
 
+
 def estadisticas(request):
     trabajadores = Planilla.objects.all()
     total_trabajadores = trabajadores.count()
@@ -108,34 +171,74 @@ def estadisticas(request):
 
     lista_puestos = [
         "COORDINADOR ACADEMICO", "DIRECTOR DE AREA", "DIRECTOR DE PLANTEL A", "DIRECTOR DE PLANTEL B",
-        "DIRECTOR GENERAL", "JEFE DE DEPARTAMENTO", "SUBDIRECTOR DE PLANTEL C", "AUXILIAR DE SERVICIOS Y MANTENIMIENTO",
+        "DIRECTOR GENERAL", "JEFE DE DEPARTAMENTO", "SUBDIRECTOR DE PLANTEL C", "AUXILIAR DE SERVICIOS Y MANTTO",
         "ADMINISTRATIVO ESPECIALIZADO", "ALMACENISTA", "ANALISTA ESPECIALIZADO", "BIBLIOTECARIO", "CAPTURISTA",
-        "COORDINADOR DE TECNICOS ESPECIALIZADOS", "ENCARGADO DE ORDEN", "ENFERMERA", "INGENIERO EN SISTEMAS",
+        "COOR DE TECNICOS ESPECIALIZADOS", "ENCARGADO DE ORDEN", "ENFERMERA", "INGENIERO EN SISTEMAS",
         "JEFE DE OFICINA", "LABORATORISTA", "OFICIAL DE MANTENIMIENTO", "PROGRAMADOR",
         "SECRETARIA DE DIRECTOR DE AREA", "SECRETARIA DE DIRECTOR DE PLANTEL", "SECRETARIA DE DIRECTOR GENERAL",
         "SUPERVISOR", "TAQUIMECANOGRAFA", "TECNICO ESPECIALIZADO", "TRABAJADORA SOCIAL", "VIGILANTE",
-        "OPERADOR DE EQUIPO TIP ESPECIAL", "CHOFER", "DIBUJANTE", "PROF CECYT I", "PROF CECYT I (APOYO DOCENCIA) ASOCIADO B MT",
-        "PROF CECYT I (APOYO DOCENCIA) ASOCIADO B TC", "PROF CECYT I (APOYO DOCENCIA) ASOCIADO B TT", "PROF CECYT II",
-        "PROF CECYT II (APOYO DOCENCIA) ASOCIADO C MT", "PROF CECYT II (APOYO DOCENCIA) ASOCIADO C TC",
-        "PROF CECYT II (APOYO DOCENCIA) ASOCIADO C TT", "PROF CECYT III", "PROF CECYT III (APOYO DOCENCIA) ASOCIADO A MT",
-        "PROF CECYT III (APOYO DOCENCIA) ASOCIADO A TC", "PROF CECYT III (APOYO DOCENCIA) ASOCIADO A TT", "PROF CECYT IV",
-        "PROF CECYT IV (APOYO DOCENCIA) ASOCIADO B MT", "PROF CECYT IV (APOYO DOCENCIA) ASOCIADO B TC",
-        "PROF CECYT IV (APOYO DOCENCIA) ASOCIADO B TT", "TEC DOC CECYT I", "TEC DOC CECYT II",
-        "PROF CECYT I ADICIONALES ASOCIADO B", "PROF CECYT II ADICIONALES ASOCIADO C", "PROF CECYT III ADICIONALES TITULAR A",
-        "PROF CECYT IV ADICIONALES TITULAR B", "TEC DOC CECYT I ADICIONALES TEC DOC ASOC A", "TEC DOC CECYT II ADICIONALES TEC DOC ASOC B",
-        "PROF ASOCIADO B MT", "PROF ASOCIADO B TC", "PROF ASOCIADO B TT", "PROF ASOCIADO C MT", "PROF ASOCIADO C TC",
-        "PROF ASOCIADO C TT", "PROF TITULAR A MT", "PROF TITULAR A TC", "PROF TITULAR A TT", "PROF TITULAR B MT",
-        "PROF TITULAR B TC", "PROF TITULAR B TT", "TEC DOC ASOC A MT", "TEC DOC ASOC A TT", "TEC DOC ASOC B TT"
+        "OPERADOR DE EQUIPO TIP ESPECIAL", "CHOFER", "DIBUJANTE", "PROF CECYT I",
+        "PROF CECYT I (APOYO DOCENCIA) ASOCIADO B MT", "PROF CECYT I (APOYO DOCENCIA) ASOCIADO B TC",
+        "PROF CECYT I (APOYO DOCENCIA) ASOCIADO B TT", "PROF CECYT II", "PROF CECYT II (APOYO DOCENCIA) ASOCIADO C MT",
+        "PROF CECYT II (APOYO DOCENCIA) ASOCIADO C TC", "PROF CECYT II (APOYO DOCENCIA) ASOCIADO C TT",
+        "PROF CECYT III", "PROF CECYT III (APOYO DOCENCIA) ASOCIADO A MT", "PROF CECYT III (APOYO DOCENCIA) ASOCIADO A TC",
+        "PROF CECYT III (APOYO DOCENCIA) ASOCIADO A TT", "PROF CECYT IV", "PROF CECYT IV (APOYO DOCENCIA) ASOCIADO B MT",
+        "PROF CECYT IV (APOYO DOCENCIA) ASOCIADO B TC", "PROF CECYT IV (APOYO DOCENCIA) ASOCIADO B TT", "TEC DOC CECYT I",
+        "TEC DOC CECYT II", "PROF CECYT I ADICIONALES ASOCIADO B", "PROF CECYT II ADICIONALES ASOCIADO C",
+        "PROF CECYT III ADICIONALES TITULAR A", "PROF CECYT IV ADICIONALES TITULAR B",
+        "TEC DOC CECYT I ADICIONALES TEC DOC ASOC A", "TEC DOC CECYT II ADICIONALES TEC DOC ASOC B",
+        "PROF ASOCIADO B MT", "PROF ASOCIADO B TC", "PROF ASOCIADO B TT", "PROF ASOCIADO C MT",
+        "PROF ASOCIADO C TC", "PROF ASOCIADO C TT", "PROF TITULAR A MT", "PROF TITULAR A TC",
+        "PROF TITULAR A TT", "PROF TITULAR B MT", "PROF TITULAR B TC", "PROF TITULAR B TT",
+        "TEC DOC ASOC A MT", "TEC DOC ASOC A TT", "TEC DOC ASOC B TT"
     ]
 
-    conteo_puestos = {puesto: trabajadores.filter(puesto=puesto).count() for puesto in lista_puestos}
+    puestos_labels = []
+    puestos_data = []
+    conteo_y_coincidencia = []
+
+    for puesto in lista_puestos:
+        cantidad_planilla = trabajadores.filter(puesto=puesto).count()
+        cantidad_plazas = Plazas.objects.filter(denominacion=puesto).count()
+        existe_en_plazas = cantidad_plazas > 0
+
+        if cantidad_planilla > 0:
+            puestos_labels.append(puesto)
+            puestos_data.append(cantidad_planilla)
+
+        conteo_y_coincidencia.append({
+            'puesto': puesto,
+            'cantidad_planilla': cantidad_planilla,
+            'cantidad_plazas': cantidad_plazas,
+            'coincide': existe_en_plazas,
+            'diferencia': cantidad_planilla - cantidad_plazas,
+        })
 
     context = {
         'total_trabajadores': total_trabajadores,
         'puestos_unicos': puestos_unicos,
-        'conteo_puestos': conteo_puestos,
-        'puestos_labels': json.dumps(list(conteo_puestos.keys())),
-        'puestos_data': json.dumps(list(conteo_puestos.values()))
+        'conteo_y_coincidencia': conteo_y_coincidencia,
+        'puestos_labels': puestos_labels,
+        'puestos_data': puestos_data,
     }
 
     return render(request, 'planilla/estadisticas.html', context)
+
+
+def directorio(request):
+    directorio = Directorio.objects.all()
+    return render(request, 'planilla/directorio.html', {'directorio': directorio})
+    
+def altas_lista(request):
+    # Obtiene la fecha actual
+    hoy = timezone.now()
+    # Filtra por mes y año de ingreso
+    altas_mes_actual = Planilla.objects.filter(
+        fecha_de_ingreso__year=hoy.year,
+        fecha_de_ingreso__month=hoy.month
+    ).order_by('-fecha_de_ingreso')
+
+    context = {
+        'altas': altas_mes_actual
+    }
+    return render(request, 'planilla/altas_lista.html', context)

@@ -1,5 +1,0 @@
-<!-- planilla/altas_nueva.html -->
-{% extends 'planilla/menu.html' %}
-{% block content %}
-<h2>Alta Nueva - Próximamente</h2>
-{% endblock %}

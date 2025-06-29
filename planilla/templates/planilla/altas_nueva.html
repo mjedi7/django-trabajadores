@@ -18,7 +18,15 @@
 {% endif %}
 
 <div class="container mt-4">
-    <h2 class="mb-4 text-center">Alta Nueva (Campos con * obligatorios)</h2>
+
+	<h2 class="mb-4 text-center">
+		Alta Nueva
+		<span style="font-size: 0.4em; font-weight: normal; color: #aaa;">
+			(Campos con * son obligatorios)
+		</span>
+	</h2>
+
+
 
     <form id="formularioAlta" method="post" action="{% url 'altas_nueva' %}" novalidate>
         {% csrf_token %}

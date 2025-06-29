@@ -24,6 +24,17 @@
         </div>
       </div>
     </div>
+    
+<div class="col-md-6">
+  <div class="card text-dark bg-warning mb-3">
+    <div class="card-header">Categorías sin Trabajadores</div>
+    <div class="card-body">
+      <h3 class="card-title">{{ puestos_sin_ocupar }}</h3>
+    </div>
+  </div>
+</div>
+
+    
   </div>
 
   <h4 class="mt-5">Conteo por Puesto</h4>
@@ -57,66 +68,85 @@
   </tbody>
 </table>
     
-  <h4 class="mt-5">Gráfica de Puestos</h4>
-  <div style="height: 800px;">
-    <canvas id="graficaPuestos"></canvas>
-  </div>
 
-  <!-- CDN de Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<h4 class="mt-5">Gráfica de Puestos</h4>
 
-  <script>
-    const ctx = document.getElementById('graficaPuestos').getContext('2d');
 
-    const data = {
-      labels: {{ puestos_labels|safe }},
-      datasets: [{
-        label: 'Cantidad por Puesto',
-        data: {{ puestos_data|safe }},
-        backgroundColor: [
-          'rgba(255, 165, 0, 0.7)',  // naranja
-          'rgba(255, 99, 132, 0.7)', // rojo
-          'rgba(75, 192, 192, 0.7)', // aqua
-          'rgba(153, 102, 255, 0.7)', // morado
-          'rgba(255, 206, 86, 0.7)', // amarillo
-          'rgba(54, 162, 235, 0.7)', // azul
-          'rgba(201, 203, 207, 0.7)' // gris
-        ],
-        borderColor: 'white',
-        borderWidth: 1
-      }]
-    };
-
-    const config = {
-      type: 'doughnut',
-      data: data,
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'right',
-          },
-          tooltip: {
-            mode: 'nearest',
-            intersect: false
-          }
-        }
-      }
-    };
-
-    new Chart(ctx, config);
-  </script>
   
+  <div class="row mt-4">
+    <div class="col-md-12">
+        <!-- Gráfica -->
+        <div id="graficaPuestos" style="width: 100%; height: 900px;"></div>
+    </div>
+    <div class="col-md-6">
+        <!-- Lista de categorías con cantidad -->
+        <h5>Categorías y Cantidades</h5>
+        <ul class="list-group list-group-flush small">
+            {% for item in puestos_lista %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ item.label }}
+                <span class="badge bg-primary rounded-pill">{{ item.cantidad }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
 </div>
+
+
+
+
+<!-- ECharts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+
+<script>
+const chart = echarts.init(document.getElementById('graficaPuestos'));
+
+const option = {
+  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+  series: [{
+    name: 'Cantidad por Puesto',
+    type: 'pie',
+    radius: ['40%', '70%'], // Doughnut
+    center: ['50%', '50%'],
+    data: {{ puestos_data|safe }}.map((value, index) => ({
+      value: value,
+      name: {{ puestos_labels|safe }}[index]
+    })),
+    emphasis: {
+      itemStyle: {
+        shadowBlur: 10,
+        shadowOffsetX: 0,
+        shadowColor: 'rgba(0, 0, 0, 0.5)'
+      }
+    }
+  }]
+};
+
+chart.setOption(option);
+
+window.addEventListener('resize', function () {
+  chart.resize();
+});
+
+document.addEventListener("visibilitychange", function() {
+  if (!document.hidden) {
+    chart.resize();
+  }
+});
+</script>
+
+
 {% endblock %}
 
 {% block extra_js %}
+
 <script>
 $(document).ready(function() {
     $('#tablaEstadisticas').DataTable({
         "language": {
             "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/es-MX.json"
         },
+        "paging": false,
         "pageLength": 25,
         "lengthMenu": [ [10, 25, 50, -1], [10, 25, 50, "Todos"] ],
         "ordering": true,
@@ -124,4 +154,5 @@ $(document).ready(function() {
     });
 });
 </script>
+
 {% endblock %}

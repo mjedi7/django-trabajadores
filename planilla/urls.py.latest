@@ -1,9 +1,0 @@
-from django.urls import path
-from . import views
-
-urlpatterns = [
-    path('altas/nueva/', views.altas_nueva, name='altas_nueva'),
-    path('altas/lista/', views.altas_lista, name='altas_lista'),
-    path('plazas/', views.altas_lista, name='control_plazas'),
-    path('', views.lista_planilla, name='planilla'),
-]
