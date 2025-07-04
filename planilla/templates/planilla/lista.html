@@ -78,7 +78,7 @@ table.dataTable {
                     <th>Puesto</th>
                     <th>Fecha de Ingreso</th>
                     		
-                    {% if autorizacion_usuario != 'lector' %}
+                    {% if autorizacion_usuario != 'consultor' %}
 						<th>Acciones</th>
 					{% endif %}
 					
@@ -99,7 +99,7 @@ table.dataTable {
                     <td>{{ fila.fecha_de_ingreso|date:"Y-m-d" }}</td>
 
          <!-- IMPORTANTE -->           
-		{% if autorizacion_usuario != 'lector' %}
+		{% if autorizacion_usuario != 'consultor' %}
 		            <td>
 						<button class="btn btn-danger btn-eliminar" data-id="{{ fila.no }}">Eliminar</button>
 		            </td>
