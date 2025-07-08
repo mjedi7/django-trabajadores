@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.db.models import Count
 from django.utils import timezone
 from .models import Usuario, Planilla, Adscripcion, Plazas, Directorio
+from django.db import connection
 
 def login_usuario(request):
     mensaje = ''
@@ -276,3 +277,106 @@ def arbol(request):
         "planteles": planteles,
         "tree_data": tree_data
     })
+
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.db import connection
+
+def quincenas(request):
+    if request.method == 'POST':
+        clave = request.POST.get('clave')
+
+        # Obtener datos planilla
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT clave, nombre, adscripcion, departamento FROM planilla WHERE clave = %s", [clave])
+            row = cursor.fetchone()
+            planilla = {
+                'clave': row[0],
+                'nombre': row[1],
+                'adscripcion': row[2],
+                'departamento': row[3],
+            } if row else None
+
+        # Obtener quincenas sin limpieza ni filtrado
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM quincenas_pago WHERE clave = %s", [clave])
+            columns = [col[0] for col in cursor.description]
+            rows = cursor.fetchall()
+
+        # Conversión directa de rows para JsonResponse
+        quincenas_list = [list(r) for r in rows]
+        
+        print(f"Clave recibida: {clave}")
+        print(f"Total columnas: {columns}")
+        print(f"Total filas obtenidas: {len(rows)}")
+        print(rows)        
+
+        return JsonResponse({
+            'planilla': planilla,
+            'columns': columns,
+            'quincenas': quincenas_list,
+        })
+
+    # GET carga el formulario
+    return render(request, 'planilla/quincenas_24.html')
+    
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.db import connection
+
+def quincenasf(request):
+    if request.method == 'POST':
+        clave = request.POST.get('clave', '').strip()
+
+        # Obtener datos de planilla
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT clave, nombre, adscripcion, departamento FROM planilla WHERE clave = %s", [clave])
+            row = cursor.fetchone()
+            planilla = {
+                'clave': row[0],
+                'nombre': row[1],
+                'adscripcion': row[2],
+                'departamento': row[3],
+            } if row else None
+
+        # Obtener quincenas
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM quincenas_pago WHERE clave = %s", [clave])
+            columns = [col[0] for col in cursor.description]
+            rows = cursor.fetchall()
+
+        # Transponer para revisar columnas con "#N/D"
+        if rows:
+            transposed = list(zip(*rows))
+            cleaned_columns = []
+            cleaned_transposed = []
+
+            for col_name, col_values in zip(columns, transposed):
+                clean_values = []
+                exclude_column = True
+
+                for v in col_values:
+                    if isinstance(v, str) and v.strip() == "#N/D":
+                        clean_values.append("")
+                    else:
+                        clean_values.append(v)
+                        if v not in [None, '', "#N/D"]:
+                            exclude_column = False
+
+                if col_name == 'clave' or not exclude_column:
+                    cleaned_columns.append(col_name)
+                    cleaned_transposed.append(clean_values)
+
+            cleaned_rows = list(zip(*cleaned_transposed))
+            quincenas_list = [list(r) for r in cleaned_rows]
+        else:
+            cleaned_columns = []
+            quincenas_list = []
+
+        return JsonResponse({
+            'planilla': planilla,
+            'columns': cleaned_columns,
+            'quincenas': quincenas_list,
+        })
+
+    return render(request, 'planilla/quincenas_f.html')    

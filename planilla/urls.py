@@ -17,4 +17,6 @@ urlpatterns = [
     path('directorio/', views.directorio, name='directorio'),
     path('arbol/', views.arbol, name='arbol'),
     path('altas/lista/', views.altas_lista, name='altas_lista'),
+    path('quincenas/', views.quincenas, name='quincenas'),
+    path('quincenasf/', views.quincenasf, name='quincenasf'),
 ]

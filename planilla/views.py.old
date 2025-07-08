@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.db.models import Count
 from django.utils import timezone
 from .models import Usuario, Planilla, Adscripcion, Plazas, Directorio
+from django.db import connection
 
 def login_usuario(request):
     mensaje = ''
@@ -279,46 +280,83 @@ def arbol(request):
 
 from django.shortcuts import render
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.db import connection
 
 def quincenas(request):
-    if request.method == "GET":
-        return render(request, 'planilla/quincenas_24.html')
+    if request.method == 'POST':
+        clave = request.POST.get('clave')
 
-    if request.method == "POST":
-        clave = request.POST.get('clave', '').strip()
-        if not clave:
-            return JsonResponse({'error': 'Clave requerida'}, status=400)
-
+        # Obtener datos planilla
         with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT clave, nombre, adscripcion, departamento
-                FROM planilla
-                WHERE clave = %s
-            """, [clave])
-            planilla_row = cursor.fetchone()
+            cursor.execute("SELECT clave, nombre, adscripcion, departamento FROM planilla WHERE clave = %s", [clave])
+            row = cursor.fetchone()
             planilla = {
-                'clave': planilla_row[0],
-                'nombre': planilla_row[1],
-                'adscripcion': planilla_row[2],
-                'departamento': planilla_row[3],
-            } if planilla_row else None
+                'clave': row[0],
+                'nombre': row[1],
+                'adscripcion': row[2],
+                'departamento': row[3],
+            } if row else None
 
-            cursor.execute("""
-                SELECT *
-                FROM quincenas_pago
-                WHERE clave = %s
-            """, [clave])
+        # Obtener quincenas
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM quincenas_pago WHERE clave = %s", [clave])
             columns = [col[0] for col in cursor.description]
-
             rows = cursor.fetchall()
 
-            # Enviar filas como listas para preservar orden
-            quincenas = [list(row) for row in rows]
+        # Limpiar columnas con solo NULL, '' o '#N/D'
+        if rows:
+            transposed = list(zip(*rows))
+            cleaned_columns = []
+            cleaned_transposed = []
+            for col_name, col_values in zip(columns, transposed):
+                clean_values = [
+                    (v.strip() if isinstance(v, str) else v) if v != '#N/D' else ''
+                    for v in col_values
+                ]
+                # Mantener la columna si es "clave" o tiene al menos un valor válido
+                if col_name == 'clave' or any(v not in [None, '', '#N/D'] for v in clean_values):
+                    cleaned_columns.append(col_name)
+                    cleaned_transposed.append(clean_values)
+            cleaned_rows = list(zip(*cleaned_transposed))
+        else:
+            cleaned_columns = []
+            cleaned_rows = []
+
+        # --- NUEVO: Filtrar filas con cambios consecutivos ---
+        # Solo si hay más de 1 fila, comparamos fila i con fila i+1# Después de obtener cleaned_rows y cleaned_columns, pon esto:
+
+# --- NUEVO: Filtrar filas con cambios consecutivos ---
+changed_rows = []
+if len(cleaned_rows) > 1:
+    indices_to_check = [i for i, c in enumerate(cleaned_columns) if c != 'clave']
+    changed_rows.append(cleaned_rows[0])  # Siempre incluimos la primera fila
+
+    for i in range(len(cleaned_rows) - 1):
+        row_curr = cleaned_rows[i]
+        row_next = cleaned_rows[i + 1]
+
+        diff_found = False
+        for idx in indices_to_check:
+            val_curr = str(row_curr[idx]).strip() if row_curr[idx] is not None else ''
+            val_next = str(row_next[idx]).strip() if row_next[idx] is not None else ''
+            if val_curr != val_next:
+                diff_found = True
+                break
+
+        if diff_found:
+            changed_rows.append(row_next)
+else:
+    changed_rows = cleaned_rows
+
+print(f"Total filas originales: {len(cleaned_rows)}")
+print(f"Total filas con cambios detectados: {len(changed_rows)}")
+
 
         return JsonResponse({
             'planilla': planilla,
-            'quincenas': quincenas,
-            'columns': columns
+            'columns': cleaned_columns,
+            'quincenas': cleaned_rows,
+            'quincenas_cambios': changed_rows,
         })
+
+    return render(request, 'planilla/quincenas_24.html')
