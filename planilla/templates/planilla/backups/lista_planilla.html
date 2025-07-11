@@ -39,18 +39,17 @@ table.dataTable {
     <div class="d-flex align-items-end flex-wrap gap-2 mb-3 px-2">
         <div>
             <label for="columnaSelect" class="form-label mb-0">Buscar en la columna:</label>
-				<select id="columnaSelect" class="form-select form-select-sm">
-					<option value="-1">Todas las columnas</option>
-					<option value="0">Nombre</option>
-					<option value="1">Adscripción</option>
-					<option value="2">Departamento</option>
-					<option value="3">Clave</option>
-					<option value="4">RFC</option>
-					<option value="5">CURP</option>
-					<option value="6">NSS</option>
-					<option value="7">Puesto</option>
-					<option value="8">Fecha de Ingreso</option>
-				</select>
+            <select id="columnaSelect" class="form-select form-select-sm">
+                <option value="-1">Todas las columnas</option>
+                <option value="1">Nombre</option>
+                <option value="2">Adscripción</option>
+                <option value="3">Departamento</option>
+                <option value="4">Clave</option>
+                <option value="5">RFC</option>
+                <option value="6">CURP</option>
+                <option value="7">Puesto</option>
+                <option value="8">Fecha de Ingreso</option>
+            </select>
         </div>
 
         <div>
@@ -69,13 +68,13 @@ table.dataTable {
         <table id="tabla" class="table table-bordered table-striped w-100">
             <thead>
                 <tr>
+                    <th>No</th>
                     <th>Nombre <i class="bi bi-person-down"></i></th>
                     <th>Adscripción <i class="bi bi-bucket"></i></th>
                     <th>Departamento</th>
                     <th>#</th>
                     <th>RFC</th>
                     <th>CURP</th>
-                    <th>NSS</th>                    
                     <th>Puesto</th>
                     <th>Fecha de Ingreso</th>
                     		
@@ -89,13 +88,13 @@ table.dataTable {
             <tbody>
                 {% for fila in datos %}
                 <tr>
+                    <td>{{ fila.no }}</td>
                     <td>{{ fila.nombre }}</td>
                     <td>{{ fila.adscripcion }}</td>
                     <td>{{ fila.departamento }}</td>
                     <td>{{ fila.clave }}</td>
                     <td>{{ fila.rfc }}</td>
                     <td>{{ fila.curp }}</td>
-                    <td>{{ fila.nss }}</td>                    
                     <td>{{ fila.puesto }}</td>
                     <td>{{ fila.fecha_de_ingreso|date:"Y-m-d" }}</td>
 

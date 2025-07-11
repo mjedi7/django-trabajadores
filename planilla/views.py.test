@@ -7,6 +7,8 @@ from django.db.models import Count
 from django.utils import timezone
 from .models import Usuario, Planilla, Adscripcion, Plazas, Directorio, BajasExpedientes
 from django.db import connection
+from django.urls import reverse
+
 
 def login_usuario(request):
     mensaje = ''
@@ -489,25 +491,23 @@ def planilla_bajas_lista(request):
             })
     return render(request, 'planilla/planilla_bajas_lista.html', {'trabajadores': trabajadores})
 
-from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from .models import BajasExpedientes
-from django.views.decorators.csrf import csrf_exempt
-import json
-
 def bajas_expedientes_lista(request):
+    # Vista que devuelve JSON con datos para la tabla Ajax
     expedientes = BajasExpedientes.objects.all().values(
         'id', 'clave', 'nombre', 'departamento', 'puesto', 'anaquel', 'ubicacion'
     )
     data = list(expedientes)
     return JsonResponse({'data': data})
+    
+    return render(request, 'planilla/bajas_expedientes.html')
 
-from django.views.decorators.csrf import csrf_exempt  # solo si decides usarlo
-
+@csrf_exempt
 def bajas_expedientes_actualizar(request, expediente_id):
-    if request.method == 'POST':
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
+    try:
         expediente = get_object_or_404(BajasExpedientes, id=expediente_id)
-        import json
         data = json.loads(request.body)
 
         expediente.clave = data.get('clave', expediente.clave)
@@ -516,7 +516,6 @@ def bajas_expedientes_actualizar(request, expediente_id):
         expediente.puesto = data.get('puesto', expediente.puesto)
         expediente.anaquel = data.get('anaquel', expediente.anaquel)
         expediente.ubicacion = data.get('ubicacion', expediente.ubicacion)
-
         expediente.fecha_baja = data.get('fecha_baja') or None
         expediente.caja = data.get('caja')
         expediente.observaciones = data.get('observaciones')
@@ -527,25 +526,7 @@ def bajas_expedientes_actualizar(request, expediente_id):
         expediente.devuelto = data.get('devuelto', False)
 
         expediente.save()
+
         return JsonResponse({'status': 'success'})
-    else:
-        return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
-        
-def bajas_expedientes_view(request):
-    return render(request, 'planilla/bajas_expedientes.html')
-    
-from django.http import JsonResponse, Http404
-
-def bajas_expedientes_obtener(request, expediente_id):
-    try:
-        expediente = BajasExpedientes.objects.values(
-            'id', 'clave', 'nombre', 'departamento', 'puesto',
-            'anaquel', 'ubicacion', 'fecha_baja', 'caja', 'observaciones'
-        ).get(id=expediente_id)
-
-        # Si fecha_baja es None, enviar como '', para evitar problemas en el input date
-        expediente['fecha_baja'] = expediente['fecha_baja'].isoformat() if expediente['fecha_baja'] else ''
-
-        return JsonResponse(expediente)
-    except BajasExpedientes.DoesNotExist:
-        raise Http404("Expediente no encontrado")    
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

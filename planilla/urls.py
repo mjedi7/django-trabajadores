@@ -19,4 +19,13 @@ urlpatterns = [
     path('altas/lista/', views.altas_lista, name='altas_lista'),
     path('quincenas/', views.quincenas, name='quincenas'),
     path('quincenasf/', views.quincenasf, name='quincenasf'),
+    path('planilla/baja/', views.planilla_baja, name='planilla_baja'),
+    path('planilla/dar_de_baja/<str:clave>/', views.dar_de_baja, name='dar_de_baja'),
+    path('planilla/bajas_lista_todos/', views.planilla_bajas_lista, name='planilla_bajas_lista'),
+    path('bajas_expedientes/actualizar/<int:expediente_id>/', views.bajas_expedientes_actualizar, name='bajas_expedientes_actualizar'),
+    path('bajas_expedientes/obtener/<int:expediente_id>/', views.bajas_expedientes_obtener, name='bajas_expedientes_obtener'),
+    # HTML
+    path('bajas_expedientes/', views.bajas_expedientes_view, name='bajas_expedientes'),
+    # JSON
+    path('bajas_expedientes/listar/', views.bajas_expedientes_lista, name='bajas_expedientes_lista'),
 ]

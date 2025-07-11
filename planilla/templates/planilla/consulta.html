@@ -16,7 +16,7 @@
     </div>
   </form>
 
-  {% if empleado %}
+  {% if empleado_items %}
     <form method="POST" action="{% url 'consulta' %}" class="card">
       {% csrf_token %}
       <div class="card-header bg-success text-white">
@@ -24,101 +24,45 @@
       </div>
       <div class="card-body">
         <div class="row g-2">
+			{% for field, label in empleado_items %}
+				{% if field not in campos_ocultos %}
+            <div class="col-md-4">
+              <label class="form-label fw-bold">{{ field }}</label>
 
-          <div class="col-md-3">
-            <label class="form-label fw-bold">No:</label>
-            <input type="text" class="form-control" value="{{ empleado.no }}" disabled>
-            <input type="hidden" name="no" value="{{ empleado.no }}">
-          </div>
-
-          <div class="col-md-5">
-            <label class="form-label fw-bold">Nombre:</label>
-            {% if autorizacion_usuario == 'lector' %}
-              <input type="text" class="form-control" value="{{ empleado.nombre }}" disabled>
-            {% else %}
-              <input type="text" class="form-control" name="nombre" value="{{ empleado.nombre }}" required>
-            {% endif %}
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Adscripción:</label>
-            {% if autorizacion_usuario == 'lector' %}
-              <input type="text" class="form-control" value="{{ empleado.adscripcion }}" disabled>
-            {% else %}
-              <input type="text" class="form-control" name="adscripcion" value="{{ empleado.adscripcion }}" required>
-            {% endif %}
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Departamento:</label>
-            <input type="text" class="form-control" value="{{ empleado.departamento }}" disabled>
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Clave:</label>
-            <input type="text" class="form-control" value="{{ empleado.clave }}" disabled>
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-bold">RFC:</label>
-            {% if autorizacion_usuario == 'lector' %}
-              <input type="text" class="form-control" value="{{ empleado.rfc }}" disabled>
-            {% else %}
-              <input type="text" class="form-control" name="rfc" value="{{ empleado.rfc }}" required>
-            {% endif %}
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-bold">CURP:</label>
-            {% if autorizacion_usuario == 'lector' %}
-              <input type="text" class="form-control" value="{{ empleado.curp }}" disabled>
-            {% else %}
-              <input type="text" class="form-control" name="curp" value="{{ empleado.curp }}" required>
-            {% endif %}
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Puesto:</label>
-            <input type="text" class="form-control" value="{{ empleado.puesto }}" disabled>
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Sindicato:</label>
-            {% if autorizacion_usuario == 'lector' %}
-              <input type="text" class="form-control" value="{{ empleado.sindicato }}" disabled>
-            {% else %}
-              <input type="text" class="form-control" name="sindicato" value="{{ empleado.sindicato }}" required>
-            {% endif %}
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label fw-bold">Fecha de Ingreso:</label>
-            {% if autorizacion_usuario == 'lector' %}
-              <input type="date" class="form-control" value="{{ empleado.fecha_de_ingreso|date:'Y-m-d' }}" disabled>
-            {% else %}
-              <input type="date" class="form-control" name="fecha_de_ingreso" value="{{ empleado.fecha_de_ingreso|date:'Y-m-d' }}" required>
-            {% endif %}
-          </div>
-
+              {% if autorizacion_usuario == 'consultor' or field in campos_bloqueados %}
+                {% if 'fecha' in field %}
+                  <input type="date" class="form-control" value="{{ label }}" disabled>
+                {% else %}
+                  <input type="text" class="form-control" value="{{ label }}" disabled>
+                {% endif %}
+              {% else %}
+                {% if 'fecha' in field %}
+                  <input type="date" class="form-control" name="{{ field }}" value="{{ label }}" required>
+                {% else %}
+                  <input type="text" class="form-control" name="{{ field }}" value="{{ label }}" required>
+                {% endif %}
+              {% endif %}
+            </div>
+              {% endif %}
+          {% endfor %}
         </div>
       </div>
+
+      {% if autorizacion_usuario != 'consultor' %}
+      <div class="card-footer d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-secondary" id="resetBtn">
+          <i class="bi bi-arrow-counterclockwise"></i> Resetear
+        </button>
+        <a href="{% url 'consulta' %}" class="btn btn-outline-danger">
+          <i class="bi bi-x-circle"></i> Cancelar
+        </a>
+        <button type="submit" class="btn btn-success">
+          <i class="bi bi-save"></i> Guardar Cambios
+        </button>
+      </div>
+      {% endif %}
       
-			{% if autorizacion_usuario != 'lector' %}
-				<div class="card-footer d-flex justify-content-end gap-2">
-					<button type="button" class="btn btn-secondary" id="resetBtn">
-						<i class="bi bi-arrow-counterclockwise"></i> Resetear
-					</button>
-					<a href="{% url 'consulta' %}" class="btn btn-outline-danger">
-						<i class="bi bi-x-circle"></i> Cancelar
-					</a>
-					<button type="submit" class="btn btn-success">
-						<i class="bi bi-save"></i> Guardar Cambios
-					</button>
-				</div>
-			{% endif %}
-
     </form>
-
   {% elif clave_busqueda %}
     <div class="alert alert-danger mt-4">
       No se encontró ningún empleado con la clave <strong>{{ clave_busqueda }}</strong>.
@@ -126,19 +70,17 @@
   {% endif %}
 </div>
 
-	<script>
-	document.addEventListener('DOMContentLoaded', () => {
-		const resetBtn = document.getElementById('resetBtn');
-		if (resetBtn) {
-			resetBtn.addEventListener('click', () => {
-				// Restaurar cada campo editable con el valor inicial cargado
-				document.querySelectorAll('input[name]').forEach(input => {
-					const initialValue = input.defaultValue;
-					input.value = initialValue;
-				});
-			});
-		}
-	});
-	</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const resetBtn = document.getElementById('resetBtn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      document.querySelectorAll('input[name]').forEach(input => {
+        input.value = input.defaultValue;
+      });
+    });
+  }
+});
+</script>
 
 {% endblock %}

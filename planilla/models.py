@@ -1,24 +1,32 @@
 from django.db import models
 
 class Planilla(models.Model):
-    no = models.BigAutoField(primary_key=True)
-    nombre = models.TextField(blank=True, null=True)
+    clave = models.TextField(primary_key=True)  # PK actual en planilla2
+    nombre = models.TextField(blank=False, null=False)
     adscripcion = models.TextField(blank=True, null=True)
     departamento = models.TextField(blank=True, null=True)
-    clave = models.TextField(blank=True, null=True)
+    puesto = models.TextField(blank=True, null=True)
     rfc = models.TextField(blank=True, null=True)
     curp = models.TextField(blank=True, null=True)
-    puesto = models.TextField(blank=True, null=True)
-    sindicato = models.TextField(blank=True, null=True)  # ← AGREGA ESTA LÍNEA
-    fecha_de_ingreso = models.DateTimeField(blank=True, null=True)
+    nss = models.TextField(blank=True, null=True)
+    fecha_de_ingreso = models.DateField(blank=True, null=True)
+    sindicato = models.TextField(blank=True, null=True)
+    cp = models.CharField(max_length=10, blank=True, null=True)
+    banco = models.TextField(blank=True, null=True)
+    cuenta = models.TextField(blank=True, null=True)
+    salario_base = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    situacion_adm = models.TextField(blank=True, null=True)
+    email = models.TextField(blank=True, null=True)
+    zona = models.IntegerField(blank=True, null=True)
+    no = models.BigIntegerField(unique=True)  # ya existe como BIGSERIAL NOT NULL en planilla2
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)  # primero guarda y que la BD asigne el no
+        super().save(*args, **kwargs)
         if self.no is None:
-            raise ValueError("El campo 'no' no puede ser None")    
+            raise ValueError("El campo 'no' no puede ser None")
 
     class Meta:
-        db_table = 'planilla'  # Le indica a Django que use la tabla 'planilla'
+        db_table = 'planilla2'   # CAMBIA AQUI
 
 class Adscripcion(models.Model):
     nombre = models.CharField(max_length=100)
@@ -91,3 +99,26 @@ class Usuario(models.Model):
     def __str__(self):
         return self.nombre_usuario
         
+from django.db import models
+
+class BajasExpedientes(models.Model):
+    clave = models.CharField(max_length=20)
+    nombre = models.CharField(max_length=150)
+    departamento = models.CharField(max_length=100)
+    puesto = models.CharField(max_length=100)
+    anaquel = models.CharField(max_length=20)
+    ubicacion = models.CharField(max_length=100)
+    fecha_baja = models.DateField(null=True, blank=True)
+    caja = models.CharField(max_length=20, null=True, blank=True)
+    observaciones = models.TextField(null=True, blank=True)
+    prestado = models.BooleanField(default=False)
+    fecha_prestamo = models.DateField(null=True, blank=True)
+    prestado_a = models.CharField(max_length=100, null=True, blank=True)
+    fecha_devolucion = models.DateField(null=True, blank=True)
+    devuelto = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.clave} - {self.nombre}"      
+
+    class Meta:
+        db_table = 'bajas_expedientes'        
